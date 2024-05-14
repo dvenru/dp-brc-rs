@@ -5,7 +5,7 @@ use super::{BarCodeData, BarCodeHistoryData};
 use super::{Events, BarAppEvents, Element};
 
 #[derive(PartialEq)]
-enum TableStates {
+pub enum TableStates {
     Data,
     History
 }
@@ -77,7 +77,7 @@ pub struct Table {
     rows: Vec<TableRow>,
     selected: Option<usize>,
     search_string: String,
-    state: TableStates,
+    pub state: TableStates,
 }
 
 impl Table {
@@ -93,9 +93,14 @@ impl Table {
         }
     }
 
-    pub fn show_data(&mut self, dt: Vec<BarCodeData>, header: Vec<TableCell>) {
+    pub fn show_data(&mut self, dt: Vec<BarCodeData>) {
         self.rows.clear();
-        self.header.data = header;
+        self.header.data = vec![
+            "Название".to_string().into(),
+            "Количество".to_string().into(),
+            "Хранение".to_string().into(),
+            "Штрих-код".to_string().into()
+        ];
 
         for bar in dt {
             self.rows.push(
@@ -104,9 +109,15 @@ impl Table {
         }
     }
 
-    pub fn show_history(&mut self, dt: Vec<BarCodeHistoryData>, header: Vec<TableCell>) {
+    pub fn show_history(&mut self, dt: Vec<BarCodeHistoryData>) {
         self.rows.clear();
-        self.header.data = header;
+        self.header.data = vec![
+            "Название".to_string().into(),
+            "Количество".to_string().into(),
+            "Хранение".to_string().into(),
+            "Штрих-код".to_string().into(),
+            "Дата изменения".to_string().into()
+        ];
 
         for bar in dt {
             self.rows.push(

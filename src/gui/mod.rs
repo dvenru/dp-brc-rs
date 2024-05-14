@@ -3,6 +3,8 @@ use std::fs;
 
 use crate::ORIGIN_WIDTH;
 
+use self::table::TableStates;
+
 use super::data_controller::*;
 
 pub mod table;
@@ -61,15 +63,7 @@ impl Default for BarApp {
             control_panel: ControlPanel::new()
         };
 
-        bar_app.table.show_data(
-            bar_app.data_base.get_all().unwrap(),
-            vec![
-                "Название".to_string().into(),
-                "Количество".to_string().into(),
-                "Хранение".to_string().into(),
-                "Штрих-код".to_string().into()
-            ]
-        );
+        bar_app.table.show_data(bar_app.data_base.get_all().unwrap());
         
         bar_app
     }
@@ -116,62 +110,35 @@ impl eframe::App for BarApp {
 impl BarApp {
     fn events_handler(&mut self) {
         let mut read_events = Vec::<usize>::new();
-        let mut error_events = Events::new();
+        let mut returned_events = Events::new();
 
         for (idx, event) in self.events.iter().enumerate() {
             match event {
                 BarAppEvents::AddItem(data) => {
                     self.data_base.append(data.clone()).unwrap();
-                    self.table.show_data(
-                        self.data_base.get_all().unwrap(),
-                        vec![
-                            "Название".to_string().into(),
-                            "Количество".to_string().into(),
-                            "Хранение".to_string().into(),
-                            "Штрих-код".to_string().into()
-                        ]
-                    );
-
+                    match self.table.state {
+                        TableStates::Data => self.table.show_data(self.data_base.get_all().unwrap()),
+                        TableStates::History => self.table.show_history(self.data_base.get_history(data.clone()).unwrap())
+                    }
+                    
                     read_events.push(idx);
                 }
                 BarAppEvents::UpdateItem(data) => {
                     self.data_base.update(data.clone()).unwrap();
-                    self.table.show_data(
-                        self.data_base.get_all().unwrap(),
-                        vec![
-                            "Название".to_string().into(),
-                            "Количество".to_string().into(),
-                            "Хранение".to_string().into(),
-                            "Штрих-код".to_string().into()
-                        ]
-                    );
-                
+                    match self.table.state {
+                        TableStates::Data => self.table.show_data(self.data_base.get_all().unwrap()),
+                        TableStates::History => self.table.show_history(self.data_base.get_history(data.clone()).unwrap())
+                    }
+
                     read_events.push(idx);
                 }
                 BarAppEvents::ShowItems => {
-                    self.table.show_data(
-                        self.data_base.get_all().unwrap(),
-                        vec![
-                            "Название".to_string().into(),
-                            "Количество".to_string().into(),
-                            "Хранение".to_string().into(),
-                            "Штрих-код".to_string().into()
-                        ]
-                    );
+                    self.table.show_data(self.data_base.get_all().unwrap());
 
                     read_events.push(idx);
                 }
                 BarAppEvents::ShowHistory(data) => {
-                    self.table.show_history(
-                        self.data_base.get_history(data.clone()).unwrap(),
-                        vec![
-                            "Название".to_string().into(),
-                            "Количество".to_string().into(),
-                            "Хранение".to_string().into(),
-                            "Штрих-код".to_string().into(),
-                            "Дата изменения".to_string().into()
-                        ]
-                    );
+                    self.table.show_history(self.data_base.get_history(data.clone()).unwrap());
 
                     read_events.push(idx);
                 }
@@ -181,7 +148,7 @@ impl BarApp {
 
                     for dt in db_data.iter() {
                         if name == dt.name.to_lowercase().trim().to_string() {
-                            error_events.push(BarAppEvents::ErrorNameItem);
+                            returned_events.push(BarAppEvents::ErrorNameItem);
                             break;
                         }
                     }
@@ -193,6 +160,6 @@ impl BarApp {
         }
 
         self.events.remove_multiple(read_events);
-        self.events.append(&mut error_events);
+        self.events.append(&mut returned_events);
     }
 }
