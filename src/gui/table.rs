@@ -138,9 +138,7 @@ impl Element for Table {
             };
             
             if ui.selectable_value(&mut self.state, TableStates::History, "История данных").clicked() {
-                events.push(BarAppEvents::ShowHistory(
-                    None
-                ));
+                events.push(BarAppEvents::ShowHistory(None));
             };
 
             ui.separator();
@@ -154,7 +152,7 @@ impl Element for Table {
             .resizable(true)
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
             .column(Column::auto())
-            .columns(Column::initial(120.0).range(50.0..=300.0).clip(true), self.header.data.len() - 1)
+            .columns(Column::initial(140.0).range(50.0..=300.0).clip(true), self.header.data.len() - 1)
             .column(Column::remainder())
             .sense(egui::Sense::click())
             .min_scrolled_height(0.0)
