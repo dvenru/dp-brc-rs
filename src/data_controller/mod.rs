@@ -88,7 +88,13 @@ impl DataBase {
             now.month(),
             now.year(),
             now.hour(),
-            now.minute()
+            {
+                if now.minute() < 10 {
+                    "0".to_string() + &now.minute().to_string()
+                } else {
+                    now.minute().to_string()
+                }
+            }
         );
 
         let _ = trx.execute(
@@ -118,22 +124,47 @@ impl DataBase {
         Ok(res)
     }
 
-    pub fn get_history(&self, data: BarCodeData) -> Result<Vec<BarCodeHistoryData>, Error> {
-        let mut stmt = self.connection.prepare(GET_HISTORY).unwrap();
-        let query_res = stmt.query_map([&data.brcode], |row| {
-            Ok(BarCodeHistoryData {
-                name: row.get(0).unwrap(),
-                count: row.get(1).unwrap(),
-                storage_location: row.get(2).unwrap(),
-                brcode: row.get(3).unwrap(),
-                time_change: row.get(4).unwrap()
-            })
-        }).unwrap();
-
+    pub fn get_history(&self, data: Option<BarCodeData>) -> Result<Vec<BarCodeHistoryData>, Error> {
         let mut res = Vec::new();
-        for his in query_res {
-            res.push(his.unwrap())
+
+        match data {
+            Some(data) => {
+                let mut stmt = self.connection.prepare(GET_HISTORY_BY_BARCODE).unwrap();
+                let query_res = stmt.query_map([&data.brcode], |row| {
+                    Ok(BarCodeHistoryData {
+                        name: row.get(0).unwrap(),
+                        count: row.get(1).unwrap(),
+                        storage_location: row.get(2).unwrap(),
+                        brcode: row.get(3).unwrap(),
+                        time_change: row.get(4).unwrap()
+                    })
+                }).unwrap();
+
+        
+                for his in query_res {
+                    res.push(his.unwrap())
+                }
+            }
+            
+            None => {
+                let mut stmt = self.connection.prepare(GET_HISTORY_ALL).unwrap();
+                let query_res = stmt.query_map((), |row| {
+                    Ok(BarCodeHistoryData {
+                        name: row.get(0).unwrap(),
+                        count: row.get(1).unwrap(),
+                        storage_location: row.get(2).unwrap(),
+                        brcode: row.get(3).unwrap(),
+                        time_change: row.get(4).unwrap()
+                    })
+                }).unwrap();
+
+        
+                for his in query_res {
+                    res.push(his.unwrap())
+                }
+            }
         }
+        
 
         Ok(res)
     }

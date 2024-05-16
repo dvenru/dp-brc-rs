@@ -8,13 +8,14 @@ use gui::BarApp;
 use barcode::*;
 use eframe::egui;
 
-const ORIGIN_WIDTH: f32 = 900.0;
+const ORIGIN_WIDTH: f32 = 1000.0;
 const ORIGIN_HEIGHT: f32 = 600.0;
 
 fn main() -> Result<(), eframe::Error> {
     let app_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_min_inner_size([ORIGIN_WIDTH, ORIGIN_HEIGHT])
+            .with_min_inner_size([ORIGIN_WIDTH - 100.0, ORIGIN_HEIGHT])
+            .with_inner_size([ORIGIN_WIDTH + 100.0, ORIGIN_HEIGHT])
             .with_title("BRC")
             .with_resizable(true),
         ..Default::default()

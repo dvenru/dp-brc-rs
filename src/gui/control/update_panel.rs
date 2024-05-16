@@ -120,6 +120,19 @@ impl Element for ControlPanelUpdate {
                         }
                     ));
                 }
+
+                if ui.button(RichText::new("История изменений")).clicked() {
+                    events.push(BarAppEvents::ShowHistory(
+                        Some(
+                            BarCodeData {
+                                name: self.edit_name.clone(),
+                                count: self.edit_count,
+                                storage_location: self.edit_location.clone(),
+                                brcode: self.edit_brcode.clone()
+                            }
+                        )
+                    ));
+                }
                 
                 if ui.button(RichText::new("Сохранить Штрих-код...")).clicked() {
                     self.file_dialog.save_file();

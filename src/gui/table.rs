@@ -78,6 +78,7 @@ pub struct Table {
     selected: Option<usize>,
     search_string: String,
     pub state: TableStates,
+    only_quantity: bool
 }
 
 impl Table {
@@ -89,7 +90,8 @@ impl Table {
             rows: Vec::new(),
             selected: None,
             search_string: "".to_string(),
-            state: TableStates::Data
+            state: TableStates::Data,
+            only_quantity: false
         }
     }
 
@@ -130,22 +132,20 @@ impl Table {
 impl Element for Table {
     fn update(&mut self, ui: &mut Ui, events: &mut Events) {
         ui.horizontal(|ui| {
-            ui.add(TextEdit::singleline(&mut self.search_string).hint_text("Поиск"));
             
             if ui.selectable_value(&mut self.state, TableStates::Data, "Таблица данных").clicked() {
                 events.push(BarAppEvents::ShowItems);
             };
+            
+            if ui.selectable_value(&mut self.state, TableStates::History, "История данных").clicked() {
+                events.push(BarAppEvents::ShowHistory(
+                    None
+                ));
+            };
 
-            match self.selected {
-                Some(_) => {
-                    if ui.selectable_value(&mut self.state, TableStates::History, "История изменений").clicked() {
-                        events.push(BarAppEvents::ShowHistory(
-                            BarCodeData::from(&self.rows[self.selected.unwrap()])
-                        ));
-                    }
-                }
-                None => {}
-            }
+            ui.separator();
+            ui.add(TextEdit::singleline(&mut self.search_string).hint_text("Поиск"));
+            // ui.checkbox(&mut self.only_quantity, "Только с количеством");
         });
 
         let available_height = ui.available_height();
@@ -154,14 +154,13 @@ impl Element for Table {
             .resizable(true)
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
             .column(Column::auto())
-            .columns(Column::initial(150.0).range(50.0..=300.0).clip(true), self.header.data.len() - 1)
+            .columns(Column::initial(120.0).range(50.0..=300.0).clip(true), self.header.data.len() - 1)
             .column(Column::remainder())
             .sense(egui::Sense::click())
             .min_scrolled_height(0.0)
             .max_scroll_height(available_height);
 
         table.header(30.0, |mut header| {
-
             header.col(|ui| {
                 ui.strong("№");
             });
@@ -171,13 +170,15 @@ impl Element for Table {
                     ui.strong(head.data.clone());
                 });
             }
-        }).body(|mut body| {
 
+        }).body(|mut body| {
             for (num, table_row) in self.rows.iter().enumerate() {
                 body.row(25.0, |mut row| {
-                    match self.selected {
-                        Some(n) if n == num => row.set_selected(true),
-                        _ => row.set_selected(false)
+                    if let TableStates::Data = self.state {
+                        match self.selected {
+                            Some(n) if n == num => row.set_selected(true),
+                            _ => row.set_selected(false)
+                        };
                     };
                     
                     if !self.search_string.is_empty() {

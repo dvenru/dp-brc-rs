@@ -5,7 +5,7 @@ pub enum BarAppEvents {
     AddItem(BarCodeData),
     UpdateItem(BarCodeData),
     ItemSelected(BarCodeData),
-    ShowHistory(BarCodeData),
+    ShowHistory(Option<BarCodeData>),
     ShowItems,
     CheckNameItem(String),
     ErrorNameItem,

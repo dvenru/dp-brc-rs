@@ -118,7 +118,7 @@ impl BarApp {
                     self.data_base.append(data.clone()).unwrap();
                     match self.table.state {
                         TableStates::Data => self.table.show_data(self.data_base.get_all().unwrap()),
-                        TableStates::History => self.table.show_history(self.data_base.get_history(data.clone()).unwrap())
+                        TableStates::History => self.table.show_history(self.data_base.get_history(Some(data.clone())).unwrap())
                     }
                     
                     read_events.push(idx);
@@ -127,18 +127,20 @@ impl BarApp {
                     self.data_base.update(data.clone()).unwrap();
                     match self.table.state {
                         TableStates::Data => self.table.show_data(self.data_base.get_all().unwrap()),
-                        TableStates::History => self.table.show_history(self.data_base.get_history(data.clone()).unwrap())
+                        TableStates::History => self.table.show_history(self.data_base.get_history(Some(data.clone())).unwrap())
                     }
 
                     read_events.push(idx);
                 }
                 BarAppEvents::ShowItems => {
                     self.table.show_data(self.data_base.get_all().unwrap());
+                    self.table.state = TableStates::Data;
 
                     read_events.push(idx);
                 }
                 BarAppEvents::ShowHistory(data) => {
                     self.table.show_history(self.data_base.get_history(data.clone()).unwrap());
+                    self.table.state = TableStates::History;
 
                     read_events.push(idx);
                 }
