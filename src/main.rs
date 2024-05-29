@@ -25,7 +25,12 @@ fn main() -> Result<(), eframe::Error> {
         "BRC",
         app_options,
         Box::new(|ctx| {
-            egui_extras::install_image_loaders(&ctx.egui_ctx);
+            let ctx = &ctx.egui_ctx;
+            let mut visual_mode = egui::Visuals::dark();
+    
+            visual_mode.override_text_color = Some(egui::Color32::WHITE);
+            ctx.set_visuals(visual_mode);
+            egui_extras::install_image_loaders(ctx);
 
             Box::<BarApp>::default()
         })

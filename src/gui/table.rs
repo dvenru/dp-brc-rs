@@ -77,21 +77,17 @@ pub struct Table {
     rows: Vec<TableRow>,
     selected: Option<usize>,
     search_string: String,
-    pub state: TableStates,
-    only_quantity: bool
+    pub state: TableStates
 }
 
 impl Table {
     pub fn new() -> Self {
         Table {
-            header: TableRow {
-                data: Vec::new()
-            },
+            header: TableRow { data: Vec::new() },
             rows: Vec::new(),
             selected: None,
             search_string: "".to_string(),
-            state: TableStates::Data,
-            only_quantity: false
+            state: TableStates::Data
         }
     }
 
@@ -105,9 +101,7 @@ impl Table {
         ];
 
         for bar in dt {
-            self.rows.push(
-                TableRow::from(bar)
-            );
+            self.rows.push(TableRow::from(bar));
         }
     }
 
@@ -143,7 +137,6 @@ impl Element for Table {
 
             ui.separator();
             ui.add(TextEdit::singleline(&mut self.search_string).hint_text("Поиск"));
-            // ui.checkbox(&mut self.only_quantity, "Только с количеством");
         });
 
         let available_height = ui.available_height();
@@ -207,9 +200,7 @@ impl Element for Table {
                             if res.clicked() {
                                 self.selected = Some(num);
     
-                                events.push(BarAppEvents::ItemSelected(
-                                    BarCodeData::from(&self.rows[self.selected.unwrap()])
-                                ));
+                                events.push(BarAppEvents::ItemSelected(BarCodeData::from(&self.rows[self.selected.unwrap()])));
                                 events.push(BarAppEvents::SwitchTabToUpdate);
                             }
                         }

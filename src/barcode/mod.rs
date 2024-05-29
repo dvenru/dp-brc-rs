@@ -22,6 +22,8 @@ impl BarCode {
             .collect::<String>()
     }
 
+    // TODO: Потом убрать
+    #[allow(dead_code)]
     pub fn decode(data: Vec<u8>) -> Result<BarCode, Error> {
         let mut splitted_vec = Vec::<Vec<u8>>::new();
 

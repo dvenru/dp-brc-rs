@@ -1,4 +1,4 @@
-use eframe::egui::Ui;
+use eframe::egui::{SelectableLabel, Ui};
 
 
 pub mod add_panel;
@@ -12,6 +12,35 @@ use update_panel::*;
 pub enum ControlPanelState {
     Add,
     Update,
+}
+
+pub struct PanelEdits {
+    pub name: String,
+    pub count: u32,
+    pub location: String,
+    pub brcode: String,
+}
+
+impl PanelEdits {
+    pub fn new() -> Self {
+        PanelEdits {
+            name: String::new(),
+            count: 0,
+            location: String::new(),
+            brcode: String::new()
+        }
+    }
+}
+
+impl From<&PanelEdits> for BarCodeData {
+    fn from(value: &PanelEdits) -> Self {
+        BarCodeData {
+            name: value.name.clone(),
+            count: value.count,
+            storage_location: value.location.clone(),
+            brcode: value.brcode.clone()
+        }
+    }
 }
 
 pub struct ControlPanel {
@@ -39,7 +68,14 @@ impl Element for ControlPanel {
                     ui.selectable_value(&mut self.state, ControlPanelState::Add, "Добавить");
                 });
                 cols[1].vertical_centered_justified(|ui| {
-                    ui.selectable_value(&mut self.state, ControlPanelState::Update, "Сведения");
+                    let res = ui.add_enabled(
+                        self.panel_update.is_active,
+                        SelectableLabel::new(self.state == ControlPanelState::Update, "Сведения")
+                    );
+
+                    if res.clicked() {
+                        self.state = ControlPanelState::Update;
+                    }
                 });
             });
         });
@@ -49,7 +85,7 @@ impl Element for ControlPanel {
         match self.state {
             ControlPanelState::Add => {
                 self.panel_add.update(ui, events);
-            },
+            }
             ControlPanelState::Update => {
                 self.panel_update.update(ui, events);
             }

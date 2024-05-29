@@ -1,4 +1,4 @@
-use eframe::egui::{self, Color32, RichText, Ui, Visuals};
+use eframe::egui::{self, Color32, Ui, Visuals};
 use std::fs;
 
 use crate::ORIGIN_WIDTH;
@@ -14,6 +14,13 @@ pub mod events;
 use events::*;
 use table::Table;
 use control::ControlPanel;
+
+
+#[derive(PartialEq)]
+pub enum AppThemeState {
+    Dark,
+    Light
+}
 
 pub trait Element {
     fn update(&mut self, _ui: &mut Ui, _events: &mut Events);
@@ -31,7 +38,8 @@ pub struct BarApp {
     events: Events,
     data_base: DataBase,
     table: Table,
-    control_panel: ControlPanel
+    control_panel: ControlPanel,
+    theme: AppThemeState
 }
 
 impl Default for BarApp {
@@ -46,21 +54,15 @@ impl Default for BarApp {
             Err(_) => ()
         }
 
-        // match fs::create_dir("assets") {
-        //     Ok(_) => (),
-        //     Err(_) => ()
-        // }
-
         let data_base = DataBase::new("data/barcodes.db").unwrap();
         data_base.init().unwrap();
-
-        let table = Table::new();
 
         let mut bar_app = BarApp {
             events: Events::new(),
             data_base,
-            table,
-            control_panel: ControlPanel::new()
+            table: Table::new(),
+            control_panel: ControlPanel::new(),
+            theme: AppThemeState::Dark
         };
 
         bar_app.table.show_data(bar_app.data_base.get_all().unwrap());
@@ -71,10 +73,6 @@ impl Default for BarApp {
 
 impl eframe::App for BarApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let mut visual_mode = Visuals::dark();
-        visual_mode.override_text_color = Some(Color32::WHITE);
-        ctx.set_visuals(visual_mode);
-        
         egui::CentralPanel::default()
             .show(ctx, |ui| {
                 let win_width = ui.available_width();
@@ -82,11 +80,35 @@ impl eframe::App for BarApp {
                 let right = win_width - left;
 
                 egui::SidePanel::left("left")
-                    .min_width(left)
+                    .max_width(left)
                     .show_separator_line(false)
                     .resizable(false)
                     .show_inside(ui, |ui| {
-                        ui.label(RichText::new("BRC").heading());
+                        ui.horizontal(|ui| {
+                            ui.add(egui::Image::new(egui::include_image!("../../assets/logo.png")));
+
+                            ui.add_space(100.0);
+
+                            ui.menu_button("Параметры", |ui| {
+                                if ui.selectable_value(&mut self.theme, AppThemeState::Dark, "Темная").clicked() {
+                                    let ctx = ui.ctx();
+                                    let mut visual_mode = Visuals::dark();
+    
+                                    visual_mode.override_text_color = Some(Color32::WHITE);
+                                    ctx.set_visuals(visual_mode);
+                                }
+    
+                                if ui.selectable_value(&mut self.theme, AppThemeState::Light, "Светлая").clicked() {
+                                    let ctx = ui.ctx();
+                                    let mut visual_mode = Visuals::light();
+    
+                                    visual_mode.override_text_color = Some(Color32::BLACK);
+                                    ctx.set_visuals(visual_mode);
+                                }
+                            });
+
+                        });
+
                         ui.add_space(10.0);
 
                         self.control_panel.update(ui, &mut self.events);

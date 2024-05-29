@@ -3,7 +3,7 @@ use query::*;
 
 use chrono::prelude::*;
 use rusqlite::ffi::Error;
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, Transaction};
 
 #[derive(Clone, Debug)]
 pub struct BarCodeData {
@@ -23,23 +23,23 @@ pub struct BarCodeHistoryData {
 }
 
 pub struct DataBase {
-    connection: Connection
+    conn_str: String
 }
 
 impl DataBase {
     pub fn new(connecting_string: &str) -> Result<Self, Error> {
-        Ok(DataBase {
-            connection: Connection::open(connecting_string).unwrap()
-        })
+        Ok(DataBase { conn_str: connecting_string.to_string() })
     }
 
     pub fn init(&self) -> Result<(), Error> {
-        self.connection.execute(
+        let conn = Connection::open(self.conn_str.clone()).unwrap();
+
+        conn.execute(
             CREATE_BARCODE_TABLE,
             ()
         ).unwrap();
 
-        self.connection.execute(
+        conn.execute(
             CREATE_HISTORY_TABLE,
             ()
         ).unwrap();
@@ -48,39 +48,34 @@ impl DataBase {
     }
 
     pub fn append(&mut self, data: BarCodeData) -> Result<()> {
-        let trx = self.connection.transaction().unwrap();
+        let mut conn = Connection::open(self.conn_str.clone()).unwrap();
+        let trx = conn.transaction().unwrap();
 
         let _ = trx.execute(
             APPEND_BARCODE,
             (&data.name, &data.count, &data.storage_location, &data.brcode)
         );
 
-        let now = Utc::now();
-        let date = format!(
-            "{}/{}/{} || {}:{}",
-            now.day(),
-            now.month(),
-            now.year(),
-            now.hour(),
-            now.minute()
-        );
-
-        let _ = trx.execute(
-            APPEND_HISTORY,
-            (&data.name, &data.count, &data.storage_location, &data.brcode, &date)
-        );
+        self.update_history(&trx, data);
 
         trx.commit()
     }
 
     pub fn update(&mut self, data: BarCodeData) -> Result<()> {
-        let trx = self.connection.transaction().unwrap();
+        let mut conn = Connection::open(self.conn_str.clone()).unwrap();
+        let trx = conn.transaction().unwrap();
 
         let _ = trx.execute(
             UPDATE_BARCODE,
             (&data.name, &data.count, &data.storage_location, &data.brcode)
         );
 
+        self.update_history(&trx, data);
+
+        trx.commit()
+    }
+
+    fn update_history(&self, trx: &Transaction, data: BarCodeData) {
         let now = Utc::now();
         let date = format!(
             "{}/{}/{} || {}:{}",
@@ -97,16 +92,18 @@ impl DataBase {
             }
         );
 
+        let last_id = trx.last_insert_rowid();
+
         let _ = trx.execute(
             APPEND_HISTORY,
-            (&data.name, &data.count, &data.storage_location, &data.brcode, &date)
+            (&data.name, &data.count, &data.storage_location, &data.brcode, &date, &last_id)
         );
-
-        trx.commit()
     }
 
     pub fn get_all(&self) -> Result<Vec<BarCodeData>, Error> {
-        let mut stmt = self.connection.prepare(GETALL_BARCODE).unwrap();
+        let conn = Connection::open(self.conn_str.clone()).unwrap();
+        let mut stmt = conn.prepare(GETALL_BARCODE).unwrap();
+
         let query_res = stmt.query_map((), |row| {
             Ok(BarCodeData {
                 name: row.get(0).unwrap(),
@@ -125,11 +122,13 @@ impl DataBase {
     }
 
     pub fn get_history(&self, data: Option<BarCodeData>) -> Result<Vec<BarCodeHistoryData>, Error> {
+        let conn = Connection::open(self.conn_str.clone()).unwrap();
         let mut res = Vec::new();
 
         match data {
             Some(data) => {
-                let mut stmt = self.connection.prepare(GET_HISTORY_BY_BARCODE).unwrap();
+                let mut stmt = conn.prepare(GET_HISTORY_BY_BARCODE).unwrap();
+
                 let query_res = stmt.query_map([&data.brcode], |row| {
                     Ok(BarCodeHistoryData {
                         name: row.get(0).unwrap(),
@@ -147,7 +146,7 @@ impl DataBase {
             }
             
             None => {
-                let mut stmt = self.connection.prepare(GET_HISTORY_ALL).unwrap();
+                let mut stmt = conn.prepare(GET_HISTORY_ALL).unwrap();
                 let query_res = stmt.query_map((), |row| {
                     Ok(BarCodeHistoryData {
                         name: row.get(0).unwrap(),
