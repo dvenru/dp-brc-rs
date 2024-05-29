@@ -18,12 +18,6 @@ impl ControlPanelAdd {
             is_error_name: false
         }
     }
-
-    fn check_edits(&self) -> bool {
-        self.edit.name.trim().len() > 0 &&
-        self.edit.location.trim().len() > 0 &&
-        self.edit.brcode.len() > 0
-    }
 }
 
 impl Element for ControlPanelAdd {
@@ -99,13 +93,13 @@ impl Element for ControlPanelAdd {
         ui.add_space(10.0);
         ui.vertical_centered_justified(|ui| {
             let res = ui.add_enabled(
-                self.check_edits() && !self.is_error_name,
+                self.edit.check() && !self.is_error_name,
                 Button::new("Добавить")
             );
 
             if !res.enabled() && res.contains_pointer() {
                 show_tooltip_at_pointer(ui.ctx(), Id::new("add_button_data_check"), |ui| {
-                    if !self.check_edits() {
+                    if !self.edit.check() {
                         ui.label(RichText::new("Не все поля заполнены!"));
                     }
                     if self.is_error_name {

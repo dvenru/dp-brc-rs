@@ -30,6 +30,12 @@ impl PanelEdits {
             brcode: String::new()
         }
     }
+
+    pub fn check(&self) -> bool {
+        self.name.trim().len() > 0 &&
+        self.location.trim().len() > 0 &&
+        self.brcode.len() > 0
+    }
 }
 
 impl From<&PanelEdits> for BarCodeData {
