@@ -123,8 +123,10 @@ impl Element for ControlPanelUpdate {
                 if let DialogState::Open = self.file.dialog.state() {
                     if let Some(path) = self.file.dialog.update(ui.ctx()).selected() {
                         self.file.path = Some(path.to_path_buf());
+
                         let svg = Svg::new(200, 7);
                         let encode = svg.generate(BarCode::from_str(self.edit.brcode.clone()).unwrap().encode()).unwrap();
+                        
                         svg.save_to(encode, self.file.path.as_mut().unwrap()).unwrap();
                     }
                 }
