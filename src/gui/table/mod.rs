@@ -98,6 +98,7 @@ impl Table {
     }
 
     pub fn show_data(&mut self, dt: Vec<BarCodeData>) {
+        self.search.date_is_active = false;
         self.rows.clear();
         self.header.data = vec![
             "Название".to_string().into(),
@@ -175,7 +176,7 @@ impl Element for Table {
                     |row| {
                         let row = row.data.iter()
                             .enumerate()
-                            .filter(|(num, _)| { *num != 1 || *num != 4 });
+                            .filter(|(num, _)| { *num != 1 });
 
                         for (_, cell) in row {
                             if cell.data.contains(&self.search.string.trim()) {
@@ -196,8 +197,8 @@ impl Element for Table {
                 ).filter(
                     |row| {
                         if self.search.date_is_active && self.state == TableStates::History {
-                            let date_start = self.search.date.0.get_date();
-                            let date_end = self.search.date.1.get_date();
+                            let date_start = NaiveDate::from(&self.search.date.0);
+                            let date_end = NaiveDate::from(&self.search.date.1);
 
                             let row_date = NaiveDate::parse_from_str(&row.data[4].data, "%d/%m/%Y || %H:%M").unwrap();
 

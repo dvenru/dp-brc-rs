@@ -1,6 +1,5 @@
 use eframe::egui::{SelectableLabel, Ui};
 
-
 pub mod add_panel;
 pub mod update_panel;
 

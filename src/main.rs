@@ -4,6 +4,7 @@ mod barcode;
 mod data_controller;
 mod gui;
 
+
 use gui::BarApp;
 use barcode::*;
 use eframe::egui;

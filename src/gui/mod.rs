@@ -85,7 +85,10 @@ impl eframe::App for BarApp {
                     .resizable(false)
                     .show_inside(ui, |ui| {
                         ui.horizontal(|ui| {
-                            ui.add(egui::Image::new(egui::include_image!("../../assets/logo.png")));
+                            match self.theme {
+                                AppThemeState::Dark => { ui.add(egui::Image::new(egui::include_image!("../../assets/logo_white.png"))); }
+                                AppThemeState::Light => { ui.add(egui::Image::new(egui::include_image!("../../assets/logo_dark.png"))); }
+                            }
 
                             ui.add_space(100.0);
 

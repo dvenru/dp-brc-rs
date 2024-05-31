@@ -1,4 +1,4 @@
-use eframe::egui::{Ui, TextEdit};
+use eframe::egui::{Grid, TextEdit, Ui};
 use super::{date::*, TableStates};
 
 #[derive(PartialEq)]
@@ -41,17 +41,23 @@ impl Search {
 
                 ui.checkbox(&mut self.date_is_active, "Сортировать по дате:");
 
-                ui.horizontal(|ui| {
-                    ui.label("С");
-                    self.date.0.update(ui, self.date_is_active);
-                });
+                Grid::new("grid_search_date")
+                    .num_columns(2)
+                    .min_col_width(10.0)
+                    .show(ui, |ui| {
+                        ui.label("C");
+                        ui.horizontal(|ui| {
+                            self.date.0.update(ui, self.date_is_active);
+                        });
+                        ui.end_row();
 
-                ui.horizontal(|ui| {
-                    ui.label("По");
-                    self.date.1.update(ui, self.date_is_active);
-                });
-                
-                
+                        ui.label("По");
+                        ui.horizontal(|ui| {
+                            self.date.1.update(ui, self.date_is_active);
+                        });
+                        ui.end_row();
+                    });
+
             }
         });
     }
