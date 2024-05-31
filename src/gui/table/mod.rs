@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use eframe::egui::{self, RichText, Ui};
 use egui_extras::{Column, TableBuilder};
 
@@ -5,6 +6,7 @@ use super::{BarCodeData, BarCodeHistoryData};
 use super::{Events, BarAppEvents, Element};
 
 mod search;
+mod date;
 
 use search::*;
 
@@ -29,9 +31,9 @@ pub struct TableRow {
 }
 
 impl TableRow {
-    pub fn draw(&self, row: &mut egui_extras::TableRow, num: usize) {
+    pub fn draw(&self, row: &mut egui_extras::TableRow, id: usize) {
         row.col(|ui| {
-            ui.label(RichText::new(num.to_string()));
+            ui.label(RichText::new(id.to_string()));
         });
 
         for col in self.data.iter() {
@@ -140,7 +142,8 @@ impl Element for Table {
             };
 
             ui.separator();
-            self.search.update(ui, events);
+
+            self.search.update(ui, &self.state);
         });
 
         let available_height = ui.available_height();
@@ -170,7 +173,11 @@ impl Element for Table {
             let sorted_rows = self.rows.iter()
                 .filter(
                     |row| {
-                        for cell in row.data.iter() {
+                        let row = row.data.iter()
+                            .enumerate()
+                            .filter(|(num, _)| { *num != 1 || *num != 4 });
+
+                        for (_, cell) in row {
                             if cell.data.contains(&self.search.string.trim()) {
                                 return true
                             }
@@ -186,23 +193,36 @@ impl Element for Table {
                             TableSort::OnlyWithoutCount => { row.data[1].data.parse::<u32>().unwrap() == 0 }
                         }
                     }
+                ).filter(
+                    |row| {
+                        if self.search.date_is_active && self.state == TableStates::History {
+                            let date_start = self.search.date.0.get_date();
+                            let date_end = self.search.date.1.get_date();
+
+                            let row_date = NaiveDate::parse_from_str(&row.data[4].data, "%d/%m/%Y || %H:%M").unwrap();
+
+                            return row_date >= date_start && row_date <= date_end
+                        }
+
+                        true
+                    }
                 );
 
-            for (num, table_row) in sorted_rows.enumerate() {
+            for (id, data_row) in sorted_rows.enumerate() {
                 body.row(25.0, |mut row| {
                     if let TableStates::Data = self.state {
                         match self.selected {
-                            Some(n) if n == num => row.set_selected(true),
+                            Some(n) if n == id => row.set_selected(true),
                             _ => row.set_selected(false)
                         };
                     };
 
-                    table_row.draw(&mut row, num + 1);
+                    data_row.draw(&mut row, id + 1);
 
                     if let TableStates::Data = self.state {
                         let res = &row.response();
                         if res.clicked() {
-                            self.selected = Some(num);
+                            self.selected = Some(id);
 
                             events.push(BarAppEvents::ItemSelected(BarCodeData::from(&self.rows[self.selected.unwrap()])));
                             events.push(BarAppEvents::SwitchTabToUpdate);

@@ -76,28 +76,29 @@ impl DataBase {
     }
 
     fn update_history(&self, trx: &Transaction, data: BarCodeData) {
-        let now = Utc::now();
-        let date = format!(
-            "{}/{}/{} || {}:{}",
-            now.day(),
-            now.month(),
-            now.year(),
-            now.hour(),
-            {
-                if now.minute() < 10 {
-                    "0".to_string() + &now.minute().to_string()
-                } else {
-                    now.minute().to_string()
-                }
-            }
-        );
+        let now = Local::now();
+        let date = now.format("%d/%m/%Y || %H:%M").to_string();
 
-        let last_id = trx.last_insert_rowid();
-
+        let last_id = self.get_barcode_id(trx, &data.brcode);
+        
         let _ = trx.execute(
             APPEND_HISTORY,
             (&data.name, &data.count, &data.storage_location, &data.brcode, &date, &last_id)
         );
+    }
+
+    fn get_barcode_id(&self, trx: &Transaction, barcode: &String) -> i64 {
+        let mut stmt = trx.prepare(GET_BARCODE_ID).unwrap();
+
+        let mut query_res = stmt.query_map([barcode], |row| {
+            Ok(
+                row.get(0).unwrap()
+            )
+        }).unwrap();
+
+        query_res.next()
+            .unwrap()
+            .unwrap()
     }
 
     pub fn get_all(&self) -> Result<Vec<BarCodeData>, Error> {

@@ -126,7 +126,7 @@ impl Element for ControlPanelUpdate {
 
                         let svg = Svg::new(200, 7);
                         let encode = svg.generate(BarCode::from_str(self.edit.brcode.clone()).unwrap().encode()).unwrap();
-                        
+
                         svg.save_to(encode, self.file.path.as_mut().unwrap()).unwrap();
                     }
                 }

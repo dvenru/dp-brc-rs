@@ -7,7 +7,7 @@ use const_encoding::*;
 pub struct BarCode(Vec<u8>);
 
 impl BarCode {
-    pub fn from_str<T: AsRef<str>>(data: T) -> Result<BarCode, Error> {
+    pub fn from_str<T: AsRef<str>>(data: T) -> Result<Self, Error> {
         let chars: Vec<u8> = data.as_ref()
             .chars()
             .map(|c| c.to_digit(10).expect("") as u8)

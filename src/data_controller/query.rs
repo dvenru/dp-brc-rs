@@ -21,6 +21,8 @@ pub const APPEND_BARCODE: &str = "INSERT INTO barcodes (name, count, storage_loc
 
 pub const APPEND_HISTORY: &str = "INSERT INTO barcodes_history (name, count, storage_location, brcode, time_change, origin_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
 
+pub const GET_BARCODE_ID: &str = "SELECT id FROM barcodes WHERE brcode=?";
+
 pub const GETALL_BARCODE: &str = "SELECT name, count, storage_location, brcode FROM barcodes";
 
 pub const GET_HISTORY_ALL: &str = "SELECT name, count, storage_location, brcode, time_change FROM barcodes_history";

@@ -10,7 +10,7 @@ pub struct Svg {
 }
 
 impl Svg {
-    pub fn new(height: u32, width_bars: u32) -> Svg {
+    pub fn new(height: u32, width_bars: u32) -> Self {
         Svg {height, width_bars}    
     }
 
