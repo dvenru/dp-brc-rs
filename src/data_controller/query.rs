@@ -1,3 +1,5 @@
+pub const CONNECTING_STRING: &str = "data/barcodes.db";
+
 pub const CREATE_BARCODE_TABLE: &str = "CREATE TABLE IF NOT EXISTS barcodes (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
@@ -23,7 +25,9 @@ pub const APPEND_HISTORY: &str = "INSERT INTO barcodes_history (name, count, sto
 
 pub const GET_BARCODE_ID: &str = "SELECT id FROM barcodes WHERE brcode=?";
 
-pub const GETALL_BARCODE: &str = "SELECT name, count, storage_location, brcode FROM barcodes";
+pub const GET_BARCODE_NAME: &str = "SELECT name FROM barcodes";
+
+pub const GET_BARCODE_ALL: &str = "SELECT name, count, storage_location, brcode FROM barcodes";
 
 pub const GET_HISTORY_ALL: &str = "SELECT name, count, storage_location, brcode, time_change FROM barcodes_history";
 

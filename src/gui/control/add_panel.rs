@@ -1,33 +1,33 @@
 use eframe::egui::{show_tooltip_at_pointer, Button, DragValue, Grid, Id, RichText, TextEdit, Ui};
-
-use crate::BarCode;
-
-use super::{BarAppEvents, BarCodeData, Element, Events, PanelEdits, RemoveMultiple};
-
 use rand::distributions::{Distribution, Uniform};
 
+use super::{BarAppEvents, BarCodeData, Events, PanelEdits};
+use crate::{data_controller::DataBase, BarCode};
+
 pub struct ControlPanelAdd {
-    pub edit: PanelEdits,
-    is_error_name: bool
+    edit: PanelEdits,
+    name_is_unique: bool
 }
 
 impl ControlPanelAdd {
     pub fn new() -> Self {
         ControlPanelAdd {
             edit: PanelEdits::new(),
-            is_error_name: false
+            name_is_unique: true
         }
     }
-}
 
-impl Element for ControlPanelAdd {
-    fn update(&mut self, ui: &mut Ui, events: &mut Events) {
+    pub fn update(&mut self, ui: &mut Ui, events: &mut Events) {
         Grid::new("grid_add")
             .num_columns(2)
             .spacing([10.0, 12.0])
             .show(ui, |ui| {
                 ui.label(RichText::new("Название:"));
+
+                let old_name = self.edit.name.clone();
                 ui.text_edit_singleline(&mut self.edit.name);
+                self.check_name(old_name);
+
                 ui.end_row();
 
                 ui.label(RichText::new("Количество:"));
@@ -88,12 +88,10 @@ impl Element for ControlPanelAdd {
                 .horizontal_align(eframe::egui::Align::Center)
         );
 
-        events.push(BarAppEvents::CheckNameItem(self.edit.name.clone()));
-
         ui.add_space(10.0);
         ui.vertical_centered_justified(|ui| {
             let res = ui.add_enabled(
-                self.edit.check() && !self.is_error_name,
+                self.edit.check() && self.name_is_unique,
                 Button::new("Добавить")
             );
 
@@ -102,37 +100,24 @@ impl Element for ControlPanelAdd {
                     if !self.edit.check() {
                         ui.label(RichText::new("Не все поля заполнены!"));
                     }
-                    if self.is_error_name {
+                    if !self.name_is_unique {
                         ui.label(RichText::new("Элемент с таким именем уже существует!"));
                     }
                 });
             }
 
             if res.clicked() {
-                events.push(BarAppEvents::AddItem(BarCodeData::from(&self.edit)));
+                DataBase::new().append(BarCodeData::from(&self.edit)).unwrap();
+                events.push(BarAppEvents::UpdateTable);
 
                 self.edit = PanelEdits::new();
             }
         });
-
-        self.events_handler(events);
     }
 
-    fn events_handler(&mut self, events: &mut Events) {
-        self.is_error_name = false;
-        let mut read_events = Vec::<usize>::new();
-
-        for (idx, event) in events.iter().enumerate() {
-            match event {
-                BarAppEvents::ErrorNameItem => {
-                    self.is_error_name = true;
-
-                    read_events.push(idx);
-                }
-                _ => {}
-            }
+    fn check_name(&mut self, old_name: String) {
+        if old_name != self.edit.name {
+            self.name_is_unique = DataBase::new().name_is_unique(self.edit.name.clone())
         }
-
-        events.remove_multiple(read_events);
     }
 }

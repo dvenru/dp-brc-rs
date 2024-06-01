@@ -2,8 +2,8 @@ use chrono::NaiveDate;
 use eframe::egui::{self, RichText, Ui};
 use egui_extras::{Column, TableBuilder};
 
-use super::{BarCodeData, BarCodeHistoryData};
-use super::{Events, BarAppEvents, Element};
+use super::{BarCodeData, BarCodeHistoryData, DataBase, RemoveMultiple};
+use super::{Events, BarAppEvents, EventHandler};
 
 mod search;
 mod date;
@@ -83,18 +83,21 @@ pub struct Table {
     rows: Vec<TableRow>,
     selected: Option<usize>,
     search: Search,
-    pub state: TableStates
+    state: TableStates
 }
 
 impl Table {
     pub fn new() -> Self {
-        Table {
+        let mut table = Table {
             header: TableRow { data: Vec::new() },
             rows: Vec::new(),
             selected: None,
             search: Search::new(),
             state: TableStates::Data
-        }
+        };
+
+        table.show_data(DataBase::new().get_items().unwrap());
+        table
     }
 
     pub fn show_data(&mut self, dt: Vec<BarCodeData>) {
@@ -123,23 +126,19 @@ impl Table {
         ];
 
         for bar in dt {
-            self.rows.push(
-                TableRow::from(bar)
-            );
+            self.rows.push(TableRow::from(bar));
         }
     }
-}
 
-impl Element for Table {
-    fn update(&mut self, ui: &mut Ui, events: &mut Events) {
+    pub fn update(&mut self, ui: &mut Ui, events: &mut Events) {
         ui.horizontal(|ui| {
             
             if ui.selectable_value(&mut self.state, TableStates::Data, "Таблица данных").clicked() {
-                events.push(BarAppEvents::ShowItems);
+                self.show_data(DataBase::new().get_items().unwrap())
             };
             
             if ui.selectable_value(&mut self.state, TableStates::History, "История данных").clicked() {
-                events.push(BarAppEvents::ShowHistory(None));
+                self.show_history(DataBase::new().get_history(None).unwrap())
             };
 
             ui.separator();
@@ -199,7 +198,6 @@ impl Element for Table {
                         if self.search.date_is_active && self.state == TableStates::History {
                             let date_start = NaiveDate::from(&self.search.date.0);
                             let date_end = NaiveDate::from(&self.search.date.1);
-
                             let row_date = NaiveDate::parse_from_str(&row.data[4].data, "%d/%m/%Y || %H:%M").unwrap();
 
                             return row_date >= date_start && row_date <= date_end
@@ -233,6 +231,34 @@ impl Element for Table {
             }
         });
 
-        self.events_handler(events);
+        self.event_handler(events);
+    }
+}
+
+impl EventHandler for Table {
+    fn event_handler(&mut self, events: &mut Events) {
+        let mut read_events = Vec::<usize>::new();
+
+        for (idx, event) in events.iter().enumerate() {
+            match event {
+                BarAppEvents::UpdateTable => {
+                    match self.state {
+                        TableStates::Data => self.show_data(DataBase::new().get_items().unwrap()),
+                        TableStates::History => self.show_history(DataBase::new().get_history(None).unwrap())
+                    }
+
+                    read_events.push(idx);
+                }
+                BarAppEvents::ShowItemHistory(data) => {
+                    self.show_history(DataBase::new().get_history(Some(data)).unwrap());
+                    self.state = TableStates::History;
+
+                    read_events.push(idx);
+                }
+                _ => {}
+            }
+        }
+
+        events.remove_multiple(read_events);
     }
 }

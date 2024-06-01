@@ -7,9 +7,8 @@ use const_encoding::*;
 pub struct BarCode(Vec<u8>);
 
 impl BarCode {
-    pub fn from_str<T: AsRef<str>>(data: T) -> Result<Self, Error> {
-        let chars: Vec<u8> = data.as_ref()
-            .chars()
+    pub fn from_str(data: String) -> Result<Self, Error> {
+        let chars: Vec<u8> = data.chars()
             .map(|c| c.to_digit(10).expect("") as u8)
             .collect();
 
@@ -22,7 +21,6 @@ impl BarCode {
             .collect::<String>()
     }
 
-    // TODO: Потом убрать
     #[allow(dead_code)]
     pub fn decode(data: Vec<u8>) -> Result<BarCode, Error> {
         let mut splitted_vec = Vec::<Vec<u8>>::new();
@@ -92,15 +90,13 @@ impl BarCode {
 
     pub fn encode(&self) -> Vec<u8> {
         (&[
-
             &[1, 0, 1][..],
             &ENCODINGS[0][self.0[1] as usize][..],
-            &self.left_payload()[..],
+            &self.left_barcode()[..],
             &[0, 1, 0, 1, 0][..],
-            &self.right_payload()[..],
+            &self.right_barcode()[..],
             &ENCODINGS[2][self.get_checksum() as usize][..],
             &[1, 0, 1][..]
-
         ][..] as &[&[u8]])
             .iter()
             .flat_map(|c| c.iter())
@@ -108,41 +104,41 @@ impl BarCode {
             .collect()
     }
 
-    fn left_payload(&self) -> Vec<u8> {
-        let slices: Vec<[u8; 7]> = self
+    fn left_barcode(&self) -> Vec<u8> {
+        let slices = self
             .0[2..7]
             .iter()
             .zip(PARITY[self.0[0] as usize].iter())
             .map(|(d, s)| ENCODINGS[*s as usize][*d as usize])
-            .collect();
+            .collect::<Vec<[u8; 7]>>();
 
         slices.iter()
-            .flat_map(|b| b.into_iter())
+            .flat_map(|c| c.into_iter())
             .cloned()
             .collect()
     }
 
-    fn right_payload(&self) -> Vec<u8> {
-        let slices: Vec<[u8; 7]> = self
+    fn right_barcode(&self) -> Vec<u8> {
+        let slices = self
             .0[7..]
             .iter()
             .map(|d| ENCODINGS[2][*d as usize])
-            .collect();
+            .collect::<Vec<[u8; 7]>>();
 
         slices.iter()
-            .flat_map(|b| b.into_iter())
+            .flat_map(|c| c.into_iter())
             .cloned()
             .collect()
     }
 
     pub fn get_checksum(&self) -> u8 {
-        let mut odds = 0;
-        let mut evens = 0;
+        let mut odds = 0u8;
+        let mut evens = 0u8;
 
-        for (i, d) in self.0.iter().enumerate() {
+        for (i, c) in self.0.iter().enumerate() {
             match i % 2 {
-                1 => odds += *d,
-                _ => evens += *d,
+                1 => { odds += *c }
+                _ => { evens += *c }
             }
         }
 

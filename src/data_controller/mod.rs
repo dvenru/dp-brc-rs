@@ -22,17 +22,15 @@ pub struct BarCodeHistoryData {
     pub time_change: String
 }
 
-pub struct DataBase {
-    conn_str: String
-}
+pub struct DataBase {}
 
 impl DataBase {
-    pub fn new(connecting_string: &str) -> Result<Self, Error> {
-        Ok(DataBase { conn_str: connecting_string.to_string() })
+    pub fn new() -> Self {
+        DataBase { }
     }
 
     pub fn init(&self) -> Result<(), Error> {
-        let conn = Connection::open(self.conn_str.clone()).unwrap();
+        let conn = Connection::open(CONNECTING_STRING).unwrap();
 
         conn.execute(
             CREATE_BARCODE_TABLE,
@@ -48,7 +46,7 @@ impl DataBase {
     }
 
     pub fn append(&mut self, data: BarCodeData) -> Result<()> {
-        let mut conn = Connection::open(self.conn_str.clone()).unwrap();
+        let mut conn = Connection::open(CONNECTING_STRING).unwrap();
         let trx = conn.transaction().unwrap();
 
         let _ = trx.execute(
@@ -62,7 +60,7 @@ impl DataBase {
     }
 
     pub fn update(&mut self, data: BarCodeData) -> Result<()> {
-        let mut conn = Connection::open(self.conn_str.clone()).unwrap();
+        let mut conn = Connection::open(CONNECTING_STRING).unwrap();
         let trx = conn.transaction().unwrap();
 
         let _ = trx.execute(
@@ -90,20 +88,41 @@ impl DataBase {
     fn get_barcode_id(&self, trx: &Transaction, barcode: &String) -> i64 {
         let mut stmt = trx.prepare(GET_BARCODE_ID).unwrap();
 
-        let mut query_res = stmt.query_map([barcode], |row| {
-            Ok(
-                row.get(0).unwrap()
-            )
-        }).unwrap();
+        let query_res = stmt.query_map([barcode], |row| {
+            Ok(row.get(0).unwrap())
+        }).unwrap()
+            .map(|id| id.unwrap())
+            .collect::<Vec<i64>>();
 
-        query_res.next()
-            .unwrap()
-            .unwrap()
+        query_res[0]
     }
 
-    pub fn get_all(&self) -> Result<Vec<BarCodeData>, Error> {
-        let conn = Connection::open(self.conn_str.clone()).unwrap();
-        let mut stmt = conn.prepare(GETALL_BARCODE).unwrap();
+    pub fn name_is_unique(&self, name: String) -> bool {
+        let conn = Connection::open(CONNECTING_STRING).unwrap();
+        let mut stmt = conn.prepare(GET_BARCODE_NAME).unwrap();
+
+        let name = name.clone()
+            .trim()
+            .to_lowercase();
+
+        let query_res = stmt.query_map((), |row| {
+            Ok(row.get::<usize, String>(0).unwrap())
+        }).unwrap()
+            .map(|n| n.unwrap().trim().to_lowercase())
+            .collect::<Vec<String>>();
+        
+        for n in query_res {
+            if n == name {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn get_items(&self) -> Result<Vec<BarCodeData>, Error> {
+        let conn = Connection::open(CONNECTING_STRING).unwrap();
+        let mut stmt = conn.prepare(GET_BARCODE_ALL).unwrap();
 
         let query_res = stmt.query_map((), |row| {
             Ok(BarCodeData {
@@ -112,19 +131,15 @@ impl DataBase {
                 storage_location: row.get(2).unwrap(),
                 brcode: row.get(3).unwrap()
             })
-        }).unwrap();
+        }).unwrap()
+            .map(|bar| bar.unwrap())
+            .collect::<Vec<BarCodeData>>();
 
-        let mut res = Vec::new();
-        for bar in query_res {
-            res.push(bar.unwrap())
-        }
-
-        Ok(res)
+        Ok(query_res)
     }
 
-    pub fn get_history(&self, data: Option<BarCodeData>) -> Result<Vec<BarCodeHistoryData>, Error> {
-        let conn = Connection::open(self.conn_str.clone()).unwrap();
-        let mut res = Vec::new();
+    pub fn get_history(&self, data: Option<&BarCodeData>) -> Result<Vec<BarCodeHistoryData>, Error> {
+        let conn = Connection::open(CONNECTING_STRING).unwrap();
 
         match data {
             Some(data) => {
@@ -138,14 +153,12 @@ impl DataBase {
                         brcode: row.get(3).unwrap(),
                         time_change: row.get(4).unwrap()
                     })
-                }).unwrap();
+                }).unwrap()
+                    .map(|his| his.unwrap())
+                    .collect::<Vec<BarCodeHistoryData>>();
 
-        
-                for his in query_res {
-                    res.push(his.unwrap())
-                }
+                return Ok(query_res);
             }
-            
             None => {
                 let mut stmt = conn.prepare(GET_HISTORY_ALL).unwrap();
                 let query_res = stmt.query_map((), |row| {
@@ -156,15 +169,12 @@ impl DataBase {
                         brcode: row.get(3).unwrap(),
                         time_change: row.get(4).unwrap()
                     })
-                }).unwrap();
+                }).unwrap()
+                    .map(|his| his.unwrap())
+                    .collect::<Vec<BarCodeHistoryData>>();
 
-        
-                for his in query_res {
-                    res.push(his.unwrap())
-                }
+                return Ok(query_res);
             }
         }
-        
-        Ok(res)
     }
 }

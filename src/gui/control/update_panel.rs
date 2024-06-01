@@ -2,8 +2,8 @@ use eframe::egui::{DragValue, Grid, RichText, TextEdit, Ui, Button, show_tooltip
 use egui_file_dialog::{DialogState, FileDialog};
 use std::path::PathBuf;
 
-use crate::{image::Svg, BarCode};
-use super::{BarAppEvents, BarCodeData, Element, Events, PanelEdits, RemoveMultiple};
+use crate::{data_controller::DataBase, image::Svg, BarCode};
+use super::{BarAppEvents, BarCodeData, EventHandler, Events, PanelEdits, RemoveMultiple};
 
 struct SaveFile {
     dialog: FileDialog,
@@ -11,10 +11,10 @@ struct SaveFile {
 }
 
 pub struct ControlPanelUpdate {
-    pub origin_name: String,
-    pub edit: PanelEdits,
+    origin_name: String,
+    edit: PanelEdits,
     pub is_active: bool,
-    is_error_name: bool,
+    name_is_unique: bool,
     file: SaveFile
 }
 
@@ -24,23 +24,25 @@ impl ControlPanelUpdate {
             origin_name: String::new(),
             edit: PanelEdits::new(),
             is_active: false,
-            is_error_name: false,
+            name_is_unique: true,
             file: SaveFile {
                 dialog: FileDialog::new().title("Сохранить как..."),
                 path: None
             }
         }
     }
-}
 
-impl Element for ControlPanelUpdate {
-    fn update(&mut self, ui: &mut Ui, events: &mut Events) {
+    pub fn update(&mut self, ui: &mut Ui, events: &mut Events) {
         Grid::new("grid_update")
                 .num_columns(2)
                 .spacing([10.0, 12.0])
                 .show(ui, |ui| {
                     ui.label(RichText::new("Название:"));
+
+                    let old_name = self.edit.name.clone();
                     ui.text_edit_singleline(&mut self.edit.name);
+                    self.check_name(old_name);
+
                     ui.end_row();
     
                     ui.label(RichText::new("Количество:"));
@@ -84,14 +86,12 @@ impl Element for ControlPanelUpdate {
                     );
                     ui.end_row();
                 });
-            
-            events.push(BarAppEvents::CheckNameItem(self.edit.name.clone()));
 
             ui.add_space(10.0);
             ui.vertical_centered_justified(|ui| {
                 let res = ui.add_enabled(
                     self.edit.check() && 
-                    (!self.is_error_name || self.edit.name == self.origin_name),
+                    (self.name_is_unique || self.edit.name == self.origin_name),
                     Button::new(RichText::new("Обновить"))
                 );
                 
@@ -100,20 +100,19 @@ impl Element for ControlPanelUpdate {
                         if !self.edit.check() {
                             ui.label(RichText::new("Не все поля заполнены!"));
                         }
-                        if self.is_error_name && self.edit.name != self.origin_name {
+                        if !self.name_is_unique && self.edit.name != self.origin_name {
                             ui.label(RichText::new("Элемент с таким именем уже существует!"));
                         }
                     });
                 }
 
                 if res.clicked() {
-                    events.push(BarAppEvents::UpdateItem(BarCodeData::from(&self.edit)));
+                    DataBase::new().update(BarCodeData::from(&self.edit)).unwrap();
+                    events.push(BarAppEvents::UpdateTable);
                 }
 
                 if ui.button(RichText::new("История изменений")).clicked() {
-                    events.push(BarAppEvents::ShowHistory(
-                        Some(BarCodeData::from(&self.edit))
-                    ));
+                    events.push(BarAppEvents::ShowItemHistory(BarCodeData::from(&self.edit)));
                 }
                 
                 if ui.button(RichText::new("Сохранить Штрих-код...")).clicked() {
@@ -132,11 +131,19 @@ impl Element for ControlPanelUpdate {
                 }
             });
 
-        self.events_handler(events);
+        self.event_handler(events);
     }
 
-    fn events_handler(&mut self, events: &mut Events) {
-        self.is_error_name = false;
+    fn check_name(&mut self, old_name: String) {
+        if old_name != self.edit.name {
+            self.name_is_unique = DataBase::new().name_is_unique(self.edit.name.clone());
+            println!("{}", self.name_is_unique);
+        }
+    }
+}
+
+impl EventHandler for ControlPanelUpdate {
+    fn event_handler(&mut self, events: &mut Events) {
         let mut read_events = Vec::<usize>::new();
 
         for (idx, event) in events.iter().enumerate() {
@@ -151,11 +158,6 @@ impl Element for ControlPanelUpdate {
                     self.edit.brcode = data.brcode.clone();
 
                     read_events.push(idx)
-                }
-                BarAppEvents::ErrorNameItem => {
-                    self.is_error_name = true;
-
-                    read_events.push(idx);
                 }
                 _ => {}
             }

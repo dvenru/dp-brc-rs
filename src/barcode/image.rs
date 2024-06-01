@@ -17,7 +17,7 @@ impl Svg {
     pub fn generate(&self, encode: Vec<u8>) -> Result<String, Error> {
         let width = (encode.len() as u32) * self.width_bars;
 
-        let bars: String = encode.iter()
+        let bars = encode.iter()
             .enumerate()
             .filter(|&(_, &n)| n == 1)
             .map(|(pos, &color)| {
@@ -35,7 +35,7 @@ impl Svg {
                     fill
                 )
             })
-            .collect();
+            .collect::<String>();
 
         Ok(format!(
             "<svg version=\"1.1\" viewBox=\"0 0 {} {}\">{}{}</svg>",

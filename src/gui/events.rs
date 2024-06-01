@@ -1,14 +1,14 @@
 use super::BarCodeData;
 
+pub trait EventHandler {
+    fn event_handler(&mut self, events: &mut Events);
+}
+
 #[derive(Debug)]
 pub enum BarAppEvents {
-    AddItem(BarCodeData),
-    UpdateItem(BarCodeData),
+    UpdateTable,
     ItemSelected(BarCodeData),
-    ShowHistory(Option<BarCodeData>),
-    ShowItems,
-    CheckNameItem(String),
-    ErrorNameItem,
+    ShowItemHistory(BarCodeData),
     SwitchTabToUpdate,
 }
 
